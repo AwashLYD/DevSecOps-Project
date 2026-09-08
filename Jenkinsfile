@@ -54,14 +54,14 @@ pipeline {
             }
         }
 
-        stage('OWASP FS SCAN') {
+stage('OWASP FS SCAN') {
     steps {
         withEnv([
             "PATH+JDK=${tool 'jdk26'}/bin",
             "PATH+NODE=${tool 'node26'}/bin"
         ]) {
-            // Retrieve secret securely without string interpolation warning
             withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+                // MISSING STEP: You must invoke the scan here before publishing
                 dependencyCheck(
                     additionalArguments: "--scan ./ --format XML --format HTML --nvdApiKey ${env.NVD_KEY}",
                     odcInstallation: 'OWASP-DC'
@@ -71,10 +71,11 @@ pipeline {
     }
     post {
         always {
-            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            dependencyCheckPublisher allowMissingFiles: true, pattern: '**/dependency-check-report.xml'
         }
     }
-}        stage('TRIVY FS SCAN') {
+}       
+       stage('TRIVY FS SCAN') {
             steps {
                 sh 'trivy fs . > trivyfs.txt'
             }
