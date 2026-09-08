@@ -55,30 +55,26 @@ pipeline {
         }
 
         stage('OWASP FS SCAN') {
-            steps {
-                withCredentials([
-                    string(
-                        credentialsId: 'nvd-api-key',
-                        variable: 'NVD_API_KEY'
-                    )
-                ]) {
-                    dependencyCheck(
-                        additionalArguments: "--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey ${NVD_API_KEY}",
-                        odcInstallation: 'DP-Check'
-                    )
-                }
-            }
-
-            post {
-                always {
-                    dependencyCheckPublisher(
-                        pattern: '**/dependency-check-report.xml'
-                    )
-                }
+    steps {
+        withEnv([
+            "PATH+JDK=${tool 'jdk26'}/bin",
+            "PATH+NODE=${tool 'node26'}/bin"
+        ]) {
+            // Retrieve secret securely without string interpolation warning
+            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+                dependencyCheck(
+                    additionalArguments: "--scan ./ --format XML --format HTML --nvdApiKey ${env.NVD_KEY}",
+                    odcInstallation: 'OWASP-DC'
+                )
             }
         }
-
-        stage('TRIVY FS SCAN') {
+    }
+    post {
+        always {
+            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        }
+    }
+}        stage('TRIVY FS SCAN') {
             steps {
                 sh 'trivy fs . > trivyfs.txt'
             }
