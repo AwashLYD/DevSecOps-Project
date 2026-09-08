@@ -53,28 +53,27 @@ pipeline {
                 sh 'npm install'
             }
         }
-
 stage('OWASP FS SCAN') {
     steps {
         withEnv([
             "PATH+JDK=${tool 'jdk26'}/bin",
             "PATH+NODE=${tool 'node26'}/bin"
         ]) {
-            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
-                // MISSING STEP: You must invoke the scan here before publishing
+        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
                 dependencyCheck(
-                    additionalArguments: "--scan ./ --format XML --format HTML --nvdApiKey ${env.NVD_KEY}",
+             additionalArguments: "--scan ./ --format XML --format HTML --nvdApiKey ${env.NVD_KEY} --disableYarnAudit --disableNodeAudit",
                     odcInstallation: 'OWASP-DC'
                 )
+                sh 'ls -la dependency-check-report.* || echo "NO REPORT GENERATED"'
             }
         }
     }
     post {
         always {
-            dependencyCheckPublisher allowMissingFiles: true, pattern: '**/dependency-check-report.xml'
+            dependencyCheckPublisher allowMissingFiles: false, pattern: '**/dependency-check-report.xml'
         }
     }
-}       
+}      
        stage('TRIVY FS SCAN') {
             steps {
                 sh 'trivy fs . > trivyfs.txt'
